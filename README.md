@@ -1,7 +1,8 @@
 # リー群を体感する
 
 リー群(Lie group)をインタラクティブな可視化で学ぶ静的 Web ページです。
-依存ライブラリなしの単一 `index.html` で構成されています(黒背景・モノクロのシンプルなデザイン)。
+依存ライブラリなしの単一 `public/index.html` で構成され(黒背景・モノクロのシンプルなデザイン)、
+Cloudflare Workers の静的アセット機能でデプロイします。
 
 ## 内容
 
@@ -13,25 +14,31 @@
 ## ローカルで見る
 
 ```sh
-# 任意の静的サーバーで OK
-npx serve .
-# または
-python3 -m http.server
+# Wrangler のローカル開発サーバー(本番と同じ配信挙動)
+npx wrangler dev
+# または任意の静的サーバーで public/ を配信
+python3 -m http.server -d public
 ```
 
-## Cloudflare へのデプロイ
+## Cloudflare Workers へのデプロイ
 
-### 方法 1: Cloudflare Pages(Git 連携)
+設定は `wrangler.jsonc` にあります。Worker スクリプトは不要で、`public/` を
+静的アセットとして配信する「アセットのみの Worker」構成です。
 
-1. [Cloudflare ダッシュボード](https://dash.cloudflare.com/) → **Workers & Pages** → **Create** → **Pages** → **Connect to Git**
-2. このリポジトリを選択
-3. ビルド設定はすべて空のままで OK(フレームワークなし・ビルドコマンドなし・出力ディレクトリ `/`)
-4. **Save and Deploy**
-
-以後、ブランチに push するたびに自動でデプロイされます。
-
-### 方法 2: Wrangler CLI で直接デプロイ
+### 方法 1: Wrangler CLI で直接デプロイ
 
 ```sh
-npx wrangler pages deploy . --project-name=lie-group
+npx wrangler login   # 初回のみ
+npx wrangler deploy
 ```
+
+`https://lie-group.<アカウント名>.workers.dev` に公開されます。
+
+### 方法 2: Git 連携(Workers Builds)
+
+1. [Cloudflare ダッシュボード](https://dash.cloudflare.com/) → **Workers & Pages** → **Create** → **Workers** → **Import a repository**
+2. このリポジトリを選択
+3. ビルドコマンドは空のまま、デプロイコマンドに `npx wrangler deploy` を指定
+4. **Save and Deploy**
+
+以後、main に push するたびに自動でデプロイされます。
