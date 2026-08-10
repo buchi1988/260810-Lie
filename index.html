@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>リー群を体感する</title>
+<meta name="description" content="リー群(Lie group)をインタラクティブな可視化で学ぶページ。SO(2)、リー環と指数写像、SO(3) の非可換性、SU(2) の二重被覆。">
+<style>
+  :root {
+    --bg: #000000;
+    --fg: #f2f2f2;
+    --dim: #999999;
+    --faint: #444444;
+    --line: #2a2a2a;
+    --panel: #0d0d0d;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Noto Sans JP", "Yu Gothic", sans-serif;
+    line-height: 1.9;
+    -webkit-font-smoothing: antialiased;
+  }
+  main { max-width: 760px; margin: 0 auto; padding: 0 1.25rem 6rem; }
+
+  header { padding: 6rem 0 4rem; border-bottom: 1px solid var(--line); }
+  header h1 { font-size: 2.2rem; font-weight: 600; letter-spacing: 0.05em; }
+  header p.sub { color: var(--dim); margin-top: 1rem; font-size: 0.95rem; }
+
+  nav { padding: 1.5rem 0; border-bottom: 1px solid var(--line); font-size: 0.85rem; }
+  nav a { color: var(--dim); text-decoration: none; margin-right: 1.5rem; }
+  nav a:hover { color: var(--fg); }
+
+  section { padding: 4rem 0 1rem; }
+  section + section { border-top: 1px solid var(--line); }
+  h2 { font-size: 1.4rem; font-weight: 600; margin-bottom: 1.5rem; letter-spacing: 0.04em; }
+  h2 .no { color: var(--faint); font-weight: 400; margin-right: 0.75rem; }
+  h3 { font-size: 1.05rem; font-weight: 600; margin: 2.5rem 0 1rem; color: var(--fg); }
+  p { margin-bottom: 1.2rem; }
+  p.note { color: var(--dim); font-size: 0.88rem; }
+  em { font-style: normal; border-bottom: 1px solid var(--dim); }
+
+  .math {
+    font-family: "STIX Two Math", "Cambria Math", Georgia, serif;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    padding: 1rem 1.25rem;
+    margin: 1.5rem 0;
+    overflow-x: auto;
+    font-size: 1.02rem;
+    text-align: center;
+  }
+  .mi { font-family: "STIX Two Math", "Cambria Math", Georgia, serif; font-style: italic; }
+  code.m { font-family: "STIX Two Math", "Cambria Math", Georgia, serif; font-style: italic; font-size: 1.02em; }
+
+  .demo {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    padding: 1.5rem;
+    margin: 2rem 0;
+  }
+  .demo canvas { display: block; margin: 0 auto; max-width: 100%; touch-action: none; }
+  .demo .row { display: flex; align-items: center; gap: 1rem; margin-top: 1rem; flex-wrap: wrap; }
+  .demo label { color: var(--dim); font-size: 0.85rem; white-space: nowrap; }
+  .demo output { font-variant-numeric: tabular-nums; font-size: 0.85rem; min-width: 5.5em; }
+  .demo .readout {
+    font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+    font-size: 0.8rem;
+    color: var(--dim);
+    white-space: pre;
+    margin-top: 1rem;
+    line-height: 1.6;
+    overflow-x: auto;
+  }
+  .demo .pair { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+  .demo .pair figure { text-align: center; }
+  .demo .pair figcaption { color: var(--dim); font-size: 0.8rem; margin-top: 0.5rem; }
+
+  input[type="range"] {
+    -webkit-appearance: none; appearance: none;
+    flex: 1; min-width: 140px; height: 2px;
+    background: var(--faint); outline: none;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--fg); cursor: pointer; border: none;
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--fg); cursor: pointer; border: none;
+  }
+
+  button {
+    background: transparent; color: var(--fg);
+    border: 1px solid var(--dim);
+    padding: 0.45rem 1.1rem;
+    font-size: 0.85rem; font-family: inherit;
+    cursor: pointer; letter-spacing: 0.05em;
+  }
+  button:hover { background: var(--fg); color: var(--bg); }
+  button:disabled { opacity: 0.35; cursor: default; }
+  button:disabled:hover { background: transparent; color: var(--fg); }
+
+  footer {
+    border-top: 1px solid var(--line);
+    padding: 3rem 0;
+    color: var(--faint);
+    font-size: 0.8rem;
+    text-align: center;
+  }
+  @media (max-width: 560px) {
+    header { padding: 3.5rem 0 2.5rem; }
+    header h1 { font-size: 1.6rem; }
+  }
+</style>
+</head>
+<body>
+<main>
+
+<header>
+  <h1>リー群を体感する</h1>
+  <p class="sub">連続な対称性の数学 — 回して、つないで、確かめる。</p>
+</header>
+
+<nav>
+  <a href="#intro">序</a>
+  <a href="#so2">SO(2)</a>
+  <a href="#exp">リー環と指数写像</a>
+  <a href="#so3">SO(3) の非可換性</a>
+  <a href="#su2">SU(2) と 720°</a>
+</nav>
+
+<!-- ═══════════════ 序 ═══════════════ -->
+<section id="intro">
+  <h2><span class="no">0</span>リー群とは</h2>
+  <p><em>リー群</em>(Lie group)とは、<em>群</em>であると同時に<em>滑らかな多様体</em>でもある数学的対象です。つまり「掛け算(合成)と逆元がある」という代数的構造と、「連続的に、滑らかに動ける」という幾何的構造を併せ持ちます。</p>
+  <p>身近な例は回転です。平面の回転全体 SO(2)、空間の回転全体 SO(3) はどちらもリー群です。回転どうしは合成でき(群)、回転角を少しずつ変えられます(多様体)。</p>
+  <div class="math">リー群 = 群 + 滑らかな多様体(演算も滑らか)</div>
+  <p>このページでは、数式を追うだけでは掴みにくい「連続な対称性」を、手を動かして体感します。すべての図は操作できます。</p>
+</section>
+
+<!-- ═══════════════ SO(2) ═══════════════ -->
+<section id="so2">
+  <h2><span class="no">1</span>いちばん簡単なリー群 — SO(2)</h2>
+  <p>平面の原点まわりの回転全体を SO(2) と書きます。角度 <code class="m">θ</code> の回転は 2×2 行列で表されます。</p>
+  <div class="math">R(θ) = <span style="display:inline-block;vertical-align:middle;text-align:center;">( cos θ  −sin θ<br>&nbsp;&nbsp;sin θ  &nbsp;&nbsp;cos θ )</span></div>
+  <p>スライダーで <code class="m">θ</code> を動かすと、点が回転し、行列の成分が連続的に変わります。回転の全体は円周と同じ形をしています — SO(2) という「群」は、多様体としては円周 S¹ です。</p>
+
+  <div class="demo">
+    <canvas id="c-so2" width="640" height="320"></canvas>
+    <div class="row">
+      <label>θ</label>
+      <input type="range" id="so2-theta" min="-180" max="180" value="35" step="1">
+      <output id="so2-theta-out">35°</output>
+    </div>
+    <div class="readout" id="so2-matrix"></div>
+  </div>
+
+  <h3>合成 = 角度の足し算</h3>
+  <p>群であることの中身は「合成できる」ことです。SO(2) では合成が単なる角度の足し算になります: <code class="m">R(α)R(β) = R(α+β)</code>。二つの回転を合成してみてください。</p>
+
+  <div class="demo">
+    <canvas id="c-so2c" width="640" height="240"></canvas>
+    <div class="row">
+      <label>α</label>
+      <input type="range" id="so2c-a" min="-180" max="180" value="50" step="1">
+      <output id="so2c-a-out">50°</output>
+    </div>
+    <div class="row">
+      <label>β</label>
+      <input type="range" id="so2c-b" min="-180" max="180" value="-20" step="1">
+      <output id="so2c-b-out">−20°</output>
+    </div>
+    <div class="readout" id="so2c-read"></div>
+  </div>
+</section>
+
+<!-- ═══════════════ リー環と指数写像 ═══════════════ -->
+<section id="exp">
+  <h2><span class="no">2</span>リー環と指数写像</h2>
+  <p>リー群の単位元(=「何もしない」変換)における接空間を<em>リー環</em>(Lie algebra)と呼びます。曲がった群の上の「まっすぐな近似」で、無限小の変換の空間です。</p>
+  <p>SO(2) の場合、リー環 𝔰𝔬(2) は 1 次元で、生成元は</p>
+  <div class="math">J = <span style="display:inline-block;vertical-align:middle;text-align:center;">( 0  −1<br>&nbsp;1  &nbsp;&nbsp;0 )</span> ,&nbsp;&nbsp;&nbsp; exp(θJ) = R(θ)</div>
+  <p>リー環(直線)からリー群(円周)へは<em>指数写像</em> exp で移ります。下の図で接線上の点をドラッグしてください。まっすぐな線が円周に「巻き付く」様子が見えます。<code class="m">θ</code> と <code class="m">θ+2π</code> が同じ回転に写ること(exp は単射でない)も確かめられます。</p>
+
+  <div class="demo">
+    <canvas id="c-exp" width="640" height="360"></canvas>
+    <div class="row">
+      <label>θ (接線上の位置)</label>
+      <input type="range" id="exp-t" min="-720" max="720" value="120" step="1">
+      <output id="exp-t-out">120°</output>
+    </div>
+    <p class="note" style="margin-top:1rem;">接線上の点(上)と、その exp による円周上の像(下)。±360° を超えると一周して重なります。</p>
+  </div>
+
+  <h3>行列の指数関数はほんとうに回転になるのか</h3>
+  <p>exp は行列でも級数で定義されます:</p>
+  <div class="math">exp(θJ) = I + θJ + (θJ)²/2! + (θJ)³/3! + ⋯</div>
+  <p>級数を <code class="m">N</code> 項で打ち切った行列を点 (1, 0) に作用させた結果を描きます。項数を増やすと、点が円周上の正しい回転位置に収束していきます。</p>
+
+  <div class="demo">
+    <canvas id="c-series" width="640" height="320"></canvas>
+    <div class="row">
+      <label>θ</label>
+      <input type="range" id="ser-theta" min="-360" max="360" value="150" step="1">
+      <output id="ser-theta-out">150°</output>
+    </div>
+    <div class="row">
+      <label>項数 N</label>
+      <input type="range" id="ser-n" min="1" max="18" value="3" step="1">
+      <output id="ser-n-out">3</output>
+    </div>
+    <div class="readout" id="ser-read"></div>
+  </div>
+</section>
+
+<!-- ═══════════════ SO(3) ═══════════════ -->
+<section id="so3">
+  <h2><span class="no">3</span>順序が効く — SO(3) の非可換性</h2>
+  <p>空間の回転 SO(3) になると、新しい現象が現れます。<em>回転の順序を入れ替えると結果が変わる</em>のです(非可換)。</p>
+  <p>左は「x 軸まわり 90° → y 軸まわり 90°」、右は「y 軸まわり 90° → x 軸まわり 90°」。同じ 2 つの回転なのに、最終的な向きが違います。</p>
+
+  <div class="demo">
+    <div class="pair">
+      <figure>
+        <canvas id="c-cubeA" width="280" height="280"></canvas>
+        <figcaption>R<sub>y</sub>(90°) · R<sub>x</sub>(90°) — x 先</figcaption>
+      </figure>
+      <figure>
+        <canvas id="c-cubeB" width="280" height="280"></canvas>
+        <figcaption>R<sub>x</sub>(90°) · R<sub>y</sub>(90°) — y 先</figcaption>
+      </figure>
+    </div>
+    <div class="row" style="justify-content:center;">
+      <button id="so3-play">回転を実行</button>
+      <button id="so3-reset">リセット</button>
+    </div>
+    <p class="note" style="margin-top:1rem;">面の記号(●, ×, +)で向きを追ってください。実行後、2 つの立方体は異なる向きで止まります。</p>
+  </div>
+
+  <p>この「入れ替えたときのズレ」を無限小のレベルで測るのが、リー環の<em>括弧積</em>(交換子)です:</p>
+  <div class="math">[X, Y] = XY − YX ,&nbsp;&nbsp;&nbsp; 𝔰𝔬(3) では [J<sub>x</sub>, J<sub>y</sub>] = J<sub>z</sub></div>
+  <p>SO(2) では回転が全部可換なので括弧積はすべて 0 でした。SO(3) の面白さ — ジャイロスコープから角運動量の量子化まで — は、この非可換性から生まれます。</p>
+
+  <h3>自由に回してみる</h3>
+  <p>ドラッグで立方体を回転させて、SO(3) の元(空間の向き)を直接動かしてみてください。</p>
+  <div class="demo">
+    <canvas id="c-free" width="360" height="320" style="cursor:grab;"></canvas>
+    <div class="row" style="justify-content:center;">
+      <button id="free-reset">向きをリセット</button>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ SU(2) ═══════════════ -->
+<section id="su2">
+  <h2><span class="no">4</span>一回転しても戻らない — SU(2) と二重被覆</h2>
+  <p>SO(3) には有名な「影武者」がいます。単位四元数のなす群 SU(2) です。SU(2) から SO(3) への 2:1 の写像(<em>二重被覆</em>)があり、SU(2) の元 <code class="m">q</code> と <code class="m">−q</code> は同じ回転を与えます。</p>
+  <p>z 軸まわりの回転角 <code class="m">θ</code> に対応する SU(2) の元は</p>
+  <div class="math">q(θ) = cos(θ/2) + sin(θ/2) k</div>
+  <p>スライダーで <code class="m">θ</code> を 0° から 720° まで動かしてください。<b>回転(左)は 360° で元に戻る</b>のに、<b>SU(2) の元(右)は 360° で −1 になり、720° でようやく 1 に戻ります</b>。</p>
+
+  <div class="demo">
+    <div class="pair">
+      <figure>
+        <canvas id="c-su2rot" width="280" height="280"></canvas>
+        <figcaption>SO(3): 回転そのもの(θ)</figcaption>
+      </figure>
+      <figure>
+        <canvas id="c-su2q" width="280" height="280"></canvas>
+        <figcaption>SU(2): q(θ) = cos θ/2 + sin θ/2 · k</figcaption>
+      </figure>
+    </div>
+    <div class="row">
+      <label>θ</label>
+      <input type="range" id="su2-theta" min="0" max="720" value="0" step="2">
+      <output id="su2-theta-out">0°</output>
+    </div>
+    <div class="row" style="justify-content:center;">
+      <button id="su2-anim">0° → 720° を再生</button>
+    </div>
+    <div class="readout" id="su2-read"></div>
+  </div>
+
+  <p>この「一回転では戻らない」性質は数学の遊びではありません。電子などのスピン ½ 粒子の状態は SO(3) ではなく SU(2) で変換され、360° 回すと状態ベクトルの符号が反転します。リー群の大域的な形(トポロジー)が、物理の観測に顔を出す例です。</p>
+</section>
+
+<footer>
+  リー群を体感する — 静的ページ / 依存ライブラリなし
+</footer>
+
+</main>
+
+<script>
+"use strict";
+(() => {
+  const FG = "#f2f2f2", DIM = "#999", FAINT = "#444", LINE = "#2a2a2a";
+  const TAU = Math.PI * 2;
+  const $ = id => document.getElementById(id);
+
+  // devicePixelRatio 対応
+  function setupCanvas(id) {
+    const c = $(id), dpr = window.devicePixelRatio || 1;
+    const w = c.width, h = c.height;
+    c.style.width = w + "px"; c.style.height = h + "px";
+    c.width = w * dpr; c.height = h * dpr;
+    const ctx = c.getContext("2d");
+    ctx.scale(dpr, dpr);
+    return { c, ctx, w, h };
+  }
+  const deg = d => d * Math.PI / 180;
+  const fmt = (x, n = 3) => (x >= 0 ? " " : "") + x.toFixed(n);
+
+  function axes(ctx, cx, cy, r) {
+    ctx.strokeStyle = LINE; ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(cx - r - 14, cy); ctx.lineTo(cx + r + 14, cy);
+    ctx.moveTo(cx, cy - r - 14); ctx.lineTo(cx, cy + r + 14);
+    ctx.stroke();
+  }
+  function circle(ctx, cx, cy, r, style, width) {
+    ctx.strokeStyle = style || FAINT; ctx.lineWidth = width || 1;
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, TAU); ctx.stroke();
+  }
+  function dot(ctx, x, y, r, fill) {
+    ctx.fillStyle = fill || FG;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill();
+  }
+  function arrow(ctx, x0, y0, x1, y1, style, width) {
+    ctx.strokeStyle = style || FG; ctx.fillStyle = style || FG;
+    ctx.lineWidth = width || 1.5;
+    const a = Math.atan2(y1 - y0, x1 - x0), hl = 8;
+    ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x1 - hl * Math.cos(a - 0.4), y1 - hl * Math.sin(a - 0.4));
+    ctx.lineTo(x1 - hl * Math.cos(a + 0.4), y1 - hl * Math.sin(a + 0.4));
+    ctx.closePath(); ctx.fill();
+  }
+
+  /* ───────── 1. SO(2) 基本 ───────── */
+  {
+    const { ctx, w, h } = setupCanvas("c-so2");
+    const slider = $("so2-theta"), out = $("so2-theta-out"), mat = $("so2-matrix");
+    function draw() {
+      const th = deg(+slider.value);
+      ctx.clearRect(0, 0, w, h);
+      const cx = w / 2, cy = h / 2, r = 110;
+      axes(ctx, cx, cy, r);
+      circle(ctx, cx, cy, r, FAINT);
+      // 基準点 (1,0)
+      dot(ctx, cx + r, cy, 3.5, FAINT);
+      // 弧
+      ctx.strokeStyle = DIM; ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r * 0.35, 0, -th, th > 0);
+      ctx.stroke();
+      // 回転後の点とベクトル
+      const px = cx + r * Math.cos(-th), py = cy + r * Math.sin(-th);
+      arrow(ctx, cx, cy, px, py, FG, 1.5);
+      dot(ctx, px, py, 4.5, FG);
+      ctx.fillStyle = DIM; ctx.font = "12px sans-serif";
+      ctx.fillText("(1, 0)", cx + r + 8, cy + 16);
+      ctx.fillText("R(θ)(1,0)", px + 10, py - 8);
+
+      const v = +slider.value;
+      out.textContent = (v < 0 ? "−" : "") + Math.abs(v) + "°";
+      const c = Math.cos(th), s = Math.sin(th);
+      mat.textContent =
+        `R(θ) = ⎡ ${fmt(c)}  ${fmt(-s)} ⎤\n` +
+        `       ⎣ ${fmt(s)}  ${fmt(c)} ⎦   det R = 1.000`;
+    }
+    slider.addEventListener("input", draw);
+    draw();
+  }
+
+  /* ───────── 1b. SO(2) 合成 ───────── */
+  {
+    const { ctx, w, h } = setupCanvas("c-so2c");
+    const sa = $("so2c-a"), sb = $("so2c-b");
+    const oa = $("so2c-a-out"), ob = $("so2c-b-out"), read = $("so2c-read");
+    const pretty = v => (v < 0 ? "−" : "") + Math.abs(v) + "°";
+    function drawOne(cx, cy, r, th, label) {
+      circle(ctx, cx, cy, r, FAINT);
+      ctx.strokeStyle = LINE;
+      ctx.beginPath(); ctx.moveTo(cx - r, cy); ctx.lineTo(cx + r, cy); ctx.stroke();
+      const px = cx + r * Math.cos(-th), py = cy + r * Math.sin(-th);
+      arrow(ctx, cx, cy, px, py, FG, 1.5);
+      dot(ctx, px, py, 4, FG);
+      ctx.fillStyle = DIM; ctx.font = "13px sans-serif"; ctx.textAlign = "center";
+      ctx.fillText(label, cx, cy + r + 24);
+      ctx.textAlign = "left";
+    }
+    function draw() {
+      const a = +sa.value, b = +sb.value;
+      ctx.clearRect(0, 0, w, h);
+      const r = 62, cy = h / 2 - 10;
+      drawOne(w * 0.18, cy, r, deg(a), "R(α)");
+      drawOne(w * 0.5, cy, r, deg(b), "R(β)");
+      drawOne(w * 0.82, cy, r, deg(a + b), "R(α)R(β)");
+      ctx.fillStyle = DIM; ctx.font = "18px serif"; ctx.textAlign = "center";
+      ctx.fillText("·", w * 0.34, cy + 6);
+      ctx.fillText("=", w * 0.66, cy + 6);
+      ctx.textAlign = "left";
+      oa.textContent = pretty(a); ob.textContent = pretty(b);
+      read.textContent = `α + β = ${pretty(a)} + ${pretty(b)} = ${pretty(a + b)}   → 合成は角度の足し算(可換)`;
+    }
+    sa.addEventListener("input", draw);
+    sb.addEventListener("input", draw);
+    draw();
+  }
+
+  /* ───────── 2. 指数写像: 直線が円に巻き付く ───────── */
+  {
+    const { c, ctx, w, h } = setupCanvas("c-exp");
+    const slider = $("exp-t"), out = $("exp-t-out");
+    const cx = w / 2, cy = h / 2 + 30, r = 95;
+    const lineY = cy - r - 60; // 接線(上の水平線)を円の上方に描く
+    const scale = r; // 接線上の目盛り: θ [rad] * r ピクセル
+    function draw() {
+      const td = +slider.value, th = deg(td);
+      ctx.clearRect(0, 0, w, h);
+
+      // 接線 = リー環 (実数直線)
+      ctx.strokeStyle = DIM; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(20, lineY); ctx.lineTo(w - 20, lineY); ctx.stroke();
+      // 目盛り (±360°)
+      ctx.fillStyle = FAINT; ctx.font = "11px sans-serif"; ctx.textAlign = "center";
+      for (let k = -2; k <= 2; k++) {
+        const x = cx + k * Math.PI * scale;
+        if (x < 16 || x > w - 16) continue;
+        ctx.strokeStyle = FAINT;
+        ctx.beginPath(); ctx.moveTo(x, lineY - 4); ctx.lineTo(x, lineY + 4); ctx.stroke();
+        ctx.fillText((k * 180) + "°", x, lineY - 10);
+      }
+      ctx.fillStyle = DIM; ctx.textAlign = "left";
+      ctx.fillText("リー環 𝔰𝔬(2) ≅ ℝ(単位元での接空間)", 20, lineY - 28);
+
+      // 円 = リー群 SO(2)
+      circle(ctx, cx, cy, r, FAINT);
+      ctx.fillStyle = DIM;
+      ctx.fillText("リー群 SO(2) ≅ S¹", cx + r + 12, cy);
+      // 単位元
+      dot(ctx, cx, cy - r, 3.5, DIM);
+      ctx.fillStyle = FAINT;
+      ctx.fillText("I(単位元)", cx + 8, cy - r + 14);
+
+      // 巻き付いた弧: 0 から θ まで
+      ctx.strokeStyle = FG; ctx.lineWidth = 2;
+      ctx.beginPath();
+      const steps = Math.max(2, Math.ceil(Math.abs(th) / 0.03));
+      for (let i = 0; i <= steps; i++) {
+        const t = th * i / steps;
+        const x = cx + r * Math.sin(t), y = cy - r * Math.cos(t);
+        i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+      }
+      ctx.stroke();
+
+      // 接線上の点
+      const lx = cx + th * scale;
+      if (lx >= 16 && lx <= w - 16) dot(ctx, lx, lineY, 5, FG);
+      else { // 画面外なら端に半透明で
+        const ex = lx < 16 ? 16 : w - 16;
+        ctx.fillStyle = DIM;
+        ctx.font = "14px sans-serif"; ctx.textAlign = lx < 16 ? "left" : "right";
+        ctx.fillText(lx < 16 ? "◂" : "▸", ex, lineY + 5);
+        ctx.textAlign = "left";
+      }
+
+      // exp の像
+      const px = cx + r * Math.sin(th), py = cy - r * Math.cos(th);
+      // 対応線(点線)
+      ctx.setLineDash([3, 5]);
+      ctx.strokeStyle = FAINT; ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(Math.min(Math.max(lx, 16), w - 16), lineY);
+      ctx.lineTo(px, py); ctx.stroke();
+      ctx.setLineDash([]);
+      dot(ctx, px, py, 5, FG);
+      ctx.fillStyle = FG; ctx.font = "12px sans-serif";
+      ctx.fillText("exp(θJ)", px + 10, py + 4);
+
+      const winds = Math.trunc(td / 360);
+      out.textContent = (td < 0 ? "−" : "") + Math.abs(td) + "°";
+      ctx.fillStyle = DIM;
+      if (Math.abs(td) > 360) {
+        ctx.fillText(`巻き数 ${Math.abs(winds)} 周 — exp(θJ) = exp((θ−${winds * 360}°)J)`, 20, h - 12);
+      }
+    }
+    slider.addEventListener("input", draw);
+    // ドラッグ対応(接線上・円上どちらでも)
+    let dragging = false;
+    function ptr(e) {
+      const rect = c.getBoundingClientRect();
+      return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    }
+    c.addEventListener("pointerdown", e => { dragging = true; c.setPointerCapture(e.pointerId); move(e); });
+    c.addEventListener("pointermove", move);
+    c.addEventListener("pointerup", () => dragging = false);
+    function move(e) {
+      if (!dragging) return;
+      const p = ptr(e);
+      const v = Math.round((p.x - cx) / scale * 180 / Math.PI);
+      slider.value = Math.max(-720, Math.min(720, v));
+      draw();
+    }
+    draw();
+  }
+
+  /* ───────── 2b. 級数の収束 ───────── */
+  {
+    const { ctx, w, h } = setupCanvas("c-series");
+    const st = $("ser-theta"), sn = $("ser-n");
+    const ot = $("ser-theta-out"), on = $("ser-n-out"), read = $("ser-read");
+    function expPartial(th, N) {
+      // sum_{k=0}^{N-1} (θJ)^k / k!  を (1,0) に作用: J^2 = -I を利用
+      // 偶数項 → cos 系 (x 成分), 奇数項 → sin 系 (y 成分)
+      let x = 0, y = 0, term = 1; // θ^k / k!
+      for (let k = 0; k < N; k++) {
+        const m = k % 4;
+        if (m === 0) x += term;
+        else if (m === 1) y += term;
+        else if (m === 2) x -= term;
+        else y -= term;
+        term *= th / (k + 1);
+      }
+      return { x, y };
+    }
+    function draw() {
+      const td = +st.value, th = deg(td), N = +sn.value;
+      ctx.clearRect(0, 0, w, h);
+      const cx = w / 2, cy = h / 2, r = 100;
+      axes(ctx, cx, cy, r);
+      circle(ctx, cx, cy, r, FAINT);
+      // 途中経過の軌跡 (N=1..N)
+      ctx.strokeStyle = FAINT; ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (let k = 1; k <= N; k++) {
+        const p = expPartial(th, k);
+        const x = cx + p.x * r, y = cy - p.y * r;
+        k === 1 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+      for (let k = 1; k < N; k++) {
+        const p = expPartial(th, k);
+        dot(ctx, cx + p.x * r, cy - p.y * r, 2, FAINT);
+      }
+      // 正解位置
+      const gx = cx + Math.cos(th) * r, gy = cy - Math.sin(th) * r;
+      circle(ctx, gx, gy, 6, DIM, 1);
+      // 部分和
+      const p = expPartial(th, N);
+      const px = cx + p.x * r, py = cy - p.y * r;
+      arrow(ctx, cx, cy, px, py, FG, 1.5);
+      dot(ctx, px, py, 4.5, FG);
+      ctx.fillStyle = DIM; ctx.font = "12px sans-serif";
+      ctx.fillText("○ = 真の R(θ)(1,0)", 16, 24);
+      ctx.fillText("● = N 項の部分和", 16, 42);
+
+      ot.textContent = (td < 0 ? "−" : "") + Math.abs(td) + "°";
+      on.textContent = N;
+      const err = Math.hypot(p.x - Math.cos(th), p.y - Math.sin(th));
+      read.textContent =
+        `部分和 (1,0) ↦ ( ${fmt(p.x)}, ${fmt(p.y)} )   真値 ( ${fmt(Math.cos(th))}, ${fmt(Math.sin(th))} )\n誤差 = ${err.toExponential(2)}`;
+    }
+    st.addEventListener("input", draw);
+    sn.addEventListener("input", draw);
+    draw();
+  }
+
+  /* ───────── 3. SO(3): 立方体 ───────── */
+  // 3x3 行列ユーティリティ
+  const I3 = () => [1,0,0, 0,1,0, 0,0,1];
+  function mmul(a, b) {
+    const r = new Array(9);
+    for (let i = 0; i < 3; i++)
+      for (let j = 0; j < 3; j++) {
+        let s = 0;
+        for (let k = 0; k < 3; k++) s += a[i*3+k] * b[k*3+j];
+        r[i*3+j] = s;
+      }
+    return r;
+  }
+  const Rx = t => [1,0,0, 0,Math.cos(t),-Math.sin(t), 0,Math.sin(t),Math.cos(t)];
+  const Ry = t => [Math.cos(t),0,Math.sin(t), 0,1,0, -Math.sin(t),0,Math.cos(t)];
+  function apply(m, v) {
+    return [
+      m[0]*v[0]+m[1]*v[1]+m[2]*v[2],
+      m[3]*v[0]+m[4]*v[1]+m[5]*v[2],
+      m[6]*v[0]+m[7]*v[1]+m[8]*v[2],
+    ];
+  }
+
+  const CUBE_V = [];
+  for (const x of [-1,1]) for (const y of [-1,1]) for (const z of [-1,1]) CUBE_V.push([x,y,z]);
+  const CUBE_E = [[0,1],[0,2],[0,4],[1,3],[1,5],[2,3],[2,6],[3,7],[4,5],[4,6],[5,7],[6,7]];
+  // 面: [法線軸, 符号, 記号] — 記号で向きを追う
+  const FACES = [
+    { n: [0,0,1],  sym: "●" },   // 前面 z+
+    { n: [1,0,0],  sym: "×" },   // 右面 x+
+    { n: [0,1,0],  sym: "+" },   // 上面 y+
+  ];
+
+  function drawCube(ctx, w, h, M, viewTilt) {
+    ctx.clearRect(0, 0, w, h);
+    const cx = w / 2, cy = h / 2, s = w * 0.19, d = 5;
+    // 観察用の固定チルト(立体感のため)
+    const V = viewTilt || mmul(Rx(-0.35), Ry(0.5));
+    const proj = v => {
+      const p = apply(V, apply(M, v));
+      const f = d / (d - p[2]);
+      return { x: cx + p[0] * s * f, y: cy - p[1] * s * f, z: p[2] };
+    };
+    const P = CUBE_V.map(proj);
+    // 辺: 奥は薄く
+    for (const [a, b] of CUBE_E) {
+      const za = P[a].z, zb = P[b].z;
+      ctx.strokeStyle = (za + zb) / 2 > 0 ? FG : FAINT;
+      ctx.lineWidth = (za + zb) / 2 > 0 ? 1.6 : 1;
+      ctx.beginPath(); ctx.moveTo(P[a].x, P[a].y); ctx.lineTo(P[b].x, P[b].y); ctx.stroke();
+    }
+    // 面記号(面の中心に描く、手前向きのみ濃く)
+    ctx.font = "16px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    for (const f of FACES) {
+      const center = f.n.map(v => v * 1.0);
+      const p = apply(V, apply(M, center));
+      const fpersp = d / (d - p[2]);
+      const x = cx + p[0] * s * fpersp, y = cy - p[1] * s * fpersp;
+      ctx.fillStyle = p[2] > 0 ? FG : FAINT;
+      ctx.fillText(f.sym, x, y);
+    }
+    ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+    // 軸表示
+    ctx.font = "11px sans-serif";
+    const axesDef = [[[1.9,0,0],"x"],[[0,1.9,0],"y"],[[0,0,1.9],"z"]];
+    for (const [v, name] of axesDef) {
+      const p = apply(V, v);
+      const f = d / (d - p[2]);
+      const x = cx + p[0] * s * f, y = cy - p[1] * s * f;
+      ctx.strokeStyle = LINE;
+      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(x, y); ctx.stroke();
+      ctx.fillStyle = FAINT; ctx.fillText(name, x + 4, y);
+    }
+  }
+
+  {
+    const A = setupCanvas("c-cubeA"), B = setupCanvas("c-cubeB");
+    let MA = I3(), MB = I3();
+    let animId = null;
+    const playBtn = $("so3-play"), resetBtn = $("so3-reset");
+    function render() {
+      drawCube(A.ctx, A.w, A.h, MA);
+      drawCube(B.ctx, B.w, B.h, MB);
+    }
+    function reset() {
+      if (animId) { cancelAnimationFrame(animId); animId = null; }
+      MA = I3(); MB = I3();
+      playBtn.disabled = false;
+      render();
+    }
+    function play() {
+      reset();
+      playBtn.disabled = true;
+      const DUR = 900; // 各回転のミリ秒
+      // フェーズ1: A に Rx, B に Ry。フェーズ2: A に Ry, B に Rx。
+      const phases = [
+        { a: Rx, b: Ry },
+        { a: Ry, b: Rx },
+      ];
+      let phase = 0, t0 = null, prev = 0;
+      function step(ts) {
+        if (t0 === null) t0 = ts;
+        const u = Math.min((ts - t0) / DUR, 1);
+        const ease = u < 0.5 ? 2*u*u : 1 - Math.pow(-2*u+2, 2)/2;
+        const ang = ease * Math.PI / 2;
+        const dA = phases[phase].a(ang - prev), dB = phases[phase].b(ang - prev);
+        MA = mmul(dA, MA); MB = mmul(dB, MB);
+        prev = ang;
+        render();
+        if (u < 1) { animId = requestAnimationFrame(step); }
+        else if (phase === 0) {
+          phase = 1; t0 = null; prev = 0;
+          animId = requestAnimationFrame(step);
+        } else {
+          animId = null;
+          playBtn.disabled = false;
+        }
+      }
+      animId = requestAnimationFrame(step);
+    }
+    playBtn.addEventListener("click", play);
+    resetBtn.addEventListener("click", reset);
+    render();
+  }
+
+  /* ───────── 3b. 自由回転 ───────── */
+  {
+    const { c, ctx, w, h } = setupCanvas("c-free");
+    let M = mmul(Rx(-0.3), Ry(0.4));
+    const IDENT_TILT = I3(); // ビューは単位、M 自体を回す
+    function render() { drawCube(ctx, w, h, M, IDENT_TILT); }
+    let dragging = false, last = null;
+    c.addEventListener("pointerdown", e => {
+      dragging = true; last = { x: e.clientX, y: e.clientY };
+      c.setPointerCapture(e.pointerId); c.style.cursor = "grabbing";
+    });
+    c.addEventListener("pointermove", e => {
+      if (!dragging) return;
+      const dx = e.clientX - last.x, dy = e.clientY - last.y;
+      last = { x: e.clientX, y: e.clientY };
+      M = mmul(mmul(Ry(dx * 0.01), Rx(dy * 0.01)), M);
+      render();
+    });
+    const end = () => { dragging = false; c.style.cursor = "grab"; };
+    c.addEventListener("pointerup", end);
+    c.addEventListener("pointercancel", end);
+    $("free-reset").addEventListener("click", () => { M = mmul(Rx(-0.3), Ry(0.4)); render(); });
+    render();
+  }
+
+  /* ───────── 4. SU(2) 二重被覆 ───────── */
+  {
+    const R = setupCanvas("c-su2rot"), Q = setupCanvas("c-su2q");
+    const slider = $("su2-theta"), out = $("su2-theta-out"), read = $("su2-read");
+    const animBtn = $("su2-anim");
+    let animId = null;
+
+    function draw() {
+      const td = +slider.value, th = deg(td);
+      // 左: 回転 (θ mod 360)
+      {
+        const { ctx, w, h } = R;
+        ctx.clearRect(0, 0, w, h);
+        const cx = w/2, cy = h/2, r = 92;
+        circle(ctx, cx, cy, r, FAINT);
+        // 目盛り
+        ctx.strokeStyle = LINE;
+        for (let k = 0; k < 12; k++) {
+          const a = k * TAU / 12;
+          ctx.beginPath();
+          ctx.moveTo(cx + (r-5)*Math.cos(a), cy + (r-5)*Math.sin(a));
+          ctx.lineTo(cx + r*Math.cos(a), cy + r*Math.sin(a));
+          ctx.stroke();
+        }
+        arrow(ctx, cx, cy, cx + r*0.82*Math.cos(-th), cy + r*0.82*Math.sin(-th), FG, 2);
+        dot(ctx, cx, cy, 3, FG);
+        ctx.fillStyle = DIM; ctx.font = "12px sans-serif"; ctx.textAlign = "center";
+        ctx.fillText(`実際の回転角: ${((td % 360) + 360) % 360}°`, cx, h - 12);
+        ctx.textAlign = "left";
+      }
+      // 右: q(θ) — 単位円上の cos θ/2 + sin θ/2 k
+      {
+        const { ctx, w, h } = Q;
+        ctx.clearRect(0, 0, w, h);
+        const cx = w/2, cy = h/2, r = 92;
+        axes(ctx, cx, cy, r);
+        circle(ctx, cx, cy, r, FAINT);
+        // +1 と −1 に印
+        dot(ctx, cx + r, cy, 3.5, DIM);
+        dot(ctx, cx - r, cy, 3.5, DIM);
+        ctx.fillStyle = DIM; ctx.font = "12px sans-serif";
+        ctx.fillText("+1", cx + r + 7, cy + 4);
+        ctx.fillText("−1", cx - r - 24, cy + 4);
+        const half = th / 2;
+        // 軌跡
+        ctx.strokeStyle = FAINT; ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, -half, half > 0);
+        ctx.stroke();
+        const qx = Math.cos(half), qy = Math.sin(half);
+        arrow(ctx, cx, cy, cx + r*qx, cy - r*qy, FG, 2);
+        dot(ctx, cx + r*qx, cy - r*qy, 4.5, FG);
+        ctx.fillStyle = DIM; ctx.textAlign = "center";
+        ctx.fillText("横軸: 実部 / 縦軸: k 成分", cx, h - 12);
+        ctx.textAlign = "left";
+      }
+      out.textContent = td + "°";
+      const half = th / 2, c2 = Math.cos(half), s2 = Math.sin(half);
+      let msg = "";
+      if (td === 0) msg = "出発点: q = +1";
+      else if (td === 360) msg = "回転は元に戻ったのに q = −1 !";
+      else if (td === 720) msg = "720° でようやく q = +1 に戻った";
+      read.textContent =
+        `q(θ) = ${fmt(c2)} + ${fmt(s2)} k   ${msg}`;
+    }
+    slider.addEventListener("input", () => {
+      if (animId) { cancelAnimationFrame(animId); animId = null; animBtn.disabled = false; }
+      draw();
+    });
+    animBtn.addEventListener("click", () => {
+      if (animId) cancelAnimationFrame(animId);
+      animBtn.disabled = true;
+      slider.value = 0;
+      const t0 = performance.now(), DUR = 6000;
+      function step(ts) {
+        const u = Math.min((ts - t0) / DUR, 1);
+        slider.value = Math.round(u * 720 / 2) * 2;
+        draw();
+        if (u < 1) animId = requestAnimationFrame(step);
+        else { animId = null; animBtn.disabled = false; }
+      }
+      animId = requestAnimationFrame(step);
+    });
+    draw();
+  }
+})();
+</script>
+</body>
+</html>
